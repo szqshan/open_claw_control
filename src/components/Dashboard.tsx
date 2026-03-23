@@ -112,6 +112,7 @@ export default function Dashboard() {
   const [configModel, setConfigModel] = useState('')
   const [agentCount, setAgentCount] = useState<number | null>(null)
   const [channelCount, setChannelCount] = useState<number | null>(null)
+  const [dashboardOpening, setDashboardOpening] = useState(false)
   const [gatewayStarting, setGatewayStarting] = useState(false)
   const [checking, setChecking] = useState(true)
 
@@ -179,6 +180,21 @@ export default function Dashboard() {
     } catch { /* ignore */ }
   }, [ocInstalled, run])
 
+  // Open Gateway web dashboard with proper token URL
+  const openDashboard = async () => {
+    setDashboardOpening(true)
+    try {
+      const res = await run(['dashboard', '--no-open'])
+      const output = res.stdout + res.stderr
+      const match = output.match(/https?:\/\/localhost:\d+\S+/)
+      window.openclaw.openExternal(match ? match[0] : 'http://localhost:18789')
+    } catch {
+      window.openclaw.openExternal('http://localhost:18789')
+    } finally {
+      setDashboardOpening(false)
+    }
+  }
+
   const refresh = useCallback(async () => {
     setChecking(true)
     await Promise.allSettled([checkConfig(), checkWechat(), checkStats()])
@@ -244,9 +260,11 @@ export default function Dashboard() {
           <p className="text-green-400 font-bold text-lg">一切就绪！</p>
           <p className="text-[#777] text-sm">打开微信，给自己发条消息，AI 会回复你</p>
           <div className="flex items-center justify-center gap-3 pt-2">
-            <button onClick={() => window.openclaw.openExternal('http://localhost:18789')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm border border-green-500/25 hover:bg-green-500/30 transition-all">
-              <Globe size={14} /> 打开 Web 界面
+            <button onClick={openDashboard} disabled={dashboardOpening}
+              title="在浏览器中打开 Gateway 仪表盘，可直接与 AI 对话（用于测试）"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-400 text-sm border border-green-500/25 hover:bg-green-500/30 transition-all disabled:opacity-60">
+              {dashboardOpening ? <RefreshCw size={14} className="spinner" /> : <Globe size={14} />}
+              浏览器测试对话
             </button>
             <button onClick={() => setActiveTab('doctor')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1a1a1a] text-[#888] text-sm border border-[#2a2a2a] hover:text-white transition-all">
