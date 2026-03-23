@@ -181,15 +181,16 @@ export default function Dashboard() {
   }, [ocInstalled, run])
 
   // Open Gateway web dashboard with proper token URL
+  // Output format: "Dashboard URL: http://127.0.0.1:18789/#token=xxx"
   const openDashboard = async () => {
     setDashboardOpening(true)
     try {
       const res = await run(['dashboard', '--no-open'])
       const output = res.stdout + res.stderr
-      const match = output.match(/https?:\/\/localhost:\d+\S+/)
-      window.openclaw.openExternal(match ? match[0] : 'http://localhost:18789')
+      const match = output.match(/https?:\/\/[\w.]+:\d+[^\s\n]+/)
+      window.openclaw.openExternal(match ? match[0].trim() : 'http://127.0.0.1:18789')
     } catch {
-      window.openclaw.openExternal('http://localhost:18789')
+      window.openclaw.openExternal('http://127.0.0.1:18789')
     } finally {
       setDashboardOpening(false)
     }
