@@ -16,4 +16,12 @@ declare global {
   }
 }
 
+// Allow Electron's <webview> tag in JSX
+declare namespace JSX {
+  interface IntrinsicElements {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    webview: any
+  }
+}
+
 export {}

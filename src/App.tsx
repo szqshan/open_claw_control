@@ -10,6 +10,7 @@ import Config from './components/Config'
 import Doctor from './components/Doctor'
 import Install from './components/Install'
 import Welcome from './components/Welcome'
+import WebDashboard from './components/WebDashboard'
 
 export default function App() {
   const { activeTab, setOcInstalled, setOcVersion, setGatewayRunning, showWelcome, setShowWelcome } = useStore()
@@ -38,6 +39,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard />
+      case 'chat': return <WebDashboard />
       case 'gateway': return <Gateway />
       case 'agents': return <Agents />
       case 'channels': return <Channels />

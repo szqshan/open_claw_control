@@ -13,6 +13,7 @@ import {
   CheckCircle,
   AlertCircle,
   Circle,
+  MessageSquare,
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import clsx from 'clsx'
@@ -20,6 +21,7 @@ import clsx from 'clsx'
 // Nav items split into setup (always visible) and advanced (secondary)
 const SETUP_NAV = [
   { id: 'dashboard', label: '首页 · 上手引导', icon: LayoutDashboard },
+  { id: 'chat',      label: '仪表盘 · 对话',   icon: MessageSquare },
   { id: 'install',   label: '安装',            icon: Package },
   { id: 'config',    label: '配置',            icon: Settings },
   { id: 'gateway',   label: 'Gateway',         icon: Zap },
@@ -46,6 +48,10 @@ export default function Layout({ children }: LayoutProps) {
         return ocInstalled
           ? <CheckCircle size={11} className="text-green-400 flex-shrink-0" />
           : <AlertCircle size={11} className="text-orange-400 flex-shrink-0" />
+      case 'chat':
+        return gatewayRunning
+          ? <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot flex-shrink-0" />
+          : <span className="w-2 h-2 rounded-full border border-[#333] flex-shrink-0" />
       case 'gateway':
         return gatewayRunning
           ? <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot flex-shrink-0" />
