@@ -121,13 +121,33 @@ export default function Dashboard() {
     try {
       const raw = await window.openclaw.readFile(CONFIG_PATH)
       const cfg = JSON5.parse(raw)
+
+      // Structure 1 (current): models.providers.<name>.{ baseUrl, apiKey, models[] }
+      const providers = cfg?.models?.providers
+      if (providers && typeof providers === 'object') {
+        for (const p of Object.values(providers) as Record<string, unknown>[]) {
+          const rec = p as Record<string, unknown>
+          if (rec?.baseUrl && rec?.apiKey) {
+            const models = rec.models as Array<Record<string, string>> | undefined
+            const firstModel = models?.[0]
+            setConfigModel(firstModel?.id || firstModel?.name || String(rec.baseUrl))
+            setConfigDone(true)
+            return
+          }
+        }
+      }
+
+      // Structure 2 (simple/legacy): model.{ baseUrl, apiKey, model }
       const model = cfg?.model || {}
       const baseUrl = model.baseUrl || model.base_url || model.apiUrl || ''
       const apiKey = model.apiKey || model.api_key || ''
-      const modelId = model.model || model.modelId || ''
-      const ok = !!(baseUrl && apiKey && modelId)
-      setConfigDone(ok)
-      if (ok) setConfigModel(modelId)
+      if (baseUrl && apiKey) {
+        setConfigModel(model.model || model.modelId || '')
+        setConfigDone(true)
+        return
+      }
+
+      setConfigDone(false)
     } catch {
       setConfigDone(false)
     }

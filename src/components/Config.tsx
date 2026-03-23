@@ -186,7 +186,7 @@ function JsonTree({ content }: { content: string }) {
 // ─── Main Config Component ───────────────────────────────────────────────────
 
 export default function Config() {
-  const { ocInstalled } = useStore()
+  const { ocInstalled, setActiveTab } = useStore()
   const [content, setContent] = useState('')
   const [originalContent, setOriginalContent] = useState('')
   const [loading, setLoading] = useState(false)
@@ -282,7 +282,7 @@ export default function Config() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">配置</h1>
-          <p className="text-[#666] text-sm mt-0.5">编辑 OpenClaw 配置文件 · {CONFIG_PATH}</p>
+          <p className="text-[#666] text-sm mt-0.5">高级配置编辑器 · {CONFIG_PATH}</p>
         </div>
         <div className="flex gap-2 items-center">
           {/* View mode toggle */}
@@ -343,6 +343,20 @@ export default function Config() {
             {saving ? <RefreshCw size={14} className="spinner" /> : <Save size={14} />}
             保存
           </button>
+        </div>
+      </div>
+
+      {/* What is this page */}
+      <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-[#1e1e1e] bg-[#0f0f0f]">
+        <Settings size={14} className="text-[#555] flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[#aaa] text-xs leading-relaxed">
+            <span className="text-white font-medium">这是高级配置编辑器。</span>
+            通常你不需要在这里手动修改——AI 模型配置请用
+            <button onClick={() => setActiveTab('install')} className="text-orange-400 hover:text-orange-300 mx-1 underline underline-offset-2">安装页的配置向导</button>
+            完成。
+            只有需要精细调整（如修改 gateway.mode、添加多个模型提供商）时才需要直接编辑此文件。
+          </p>
         </div>
       </div>
 
