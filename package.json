@@ -1,0 +1,57 @@
+{
+  "name": "openclaw-control",
+  "version": "1.0.0",
+  "description": "OpenClaw GUI Management Tool",
+  "main": "out/main/main.js",
+  "scripts": {
+    "dev": "node start-dev.mjs",
+    "build": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite build && electron-builder",
+    "preview": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite preview",
+    "electron:dev": "node start-dev.mjs",
+    "electron:build": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite build && electron-builder"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.0",
+    "concurrently": "^8.0.0",
+    "cross-env": "^10.1.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-vite": "^5.0.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "wait-on": "^7.0.0"
+  },
+  "dependencies": {
+    "clsx": "^2.0.0",
+    "json5": "^2.2.3",
+    "lucide-react": "^0.300.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.4.0"
+  },
+  "build": {
+    "appId": "com.openclaw.control",
+    "productName": "OpenClaw Control",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
