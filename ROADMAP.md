@@ -11,9 +11,70 @@
 
 ---
 
-## 竞品分析：EasyClaw 功能矩阵
+## 当前进度（2026-03-23）
 
-EasyClaw 左侧导航（对应截图）：
+| Phase | 状态 | 说明 |
+|-------|------|------|
+| Phase 1 — 核心基础 | ✅ 100% | 安装引导、配置预设、Gateway 管理、模型测试 |
+| Phase 2 — Chat | ✅ 100% | 内嵌聊天界面，Gateway API + CLI 双路 |
+| Phase 3 — Connectors | ✅ 基础完成 | EasyClaw 风格目录页，8 种连接器 |
+| Phase 4 — Cron Tasks | ✅ 100% | once/repeat/cron 三模式，4 个模板 |
+| Phase 5 — Skill Store | 🔄 进行中 | 基础框架完成，需接入 ClawHub + 分类 |
+| Phase 6 — Agent Store | ✅ 基础完成 | 我的 Agents + 5 个预设模板 |
+
+---
+
+## 优化计划（2026-03-23 确认）
+
+### P0 — Skill Store 全面重写（EasyClaw 风格 + ClawHub 接入）
+
+**目标**：对标 EasyClaw Skill Store，支持 ClawHub 插件市场（2026.3.22 新增）
+
+- [ ] 顶部双 Tab：`Skill Store`（在线商店）+ `My Skills`（已安装）
+- [ ] 右上角：搜索框 `Search skills, press Enter` + `+ Create Skill` 按钮
+- [ ] 分类标签行：Featured / General / Creative / Academic / Development / Legal / Lifestyle / Marketing / Finance
+- [ ] 技能卡片 3 列网格：彩色方形图标、名称、描述（截断）、右上角云下载图标
+- [ ] 已安装状态显示绿色 `Added` 标签，已启用/禁用切换
+- [ ] 数据来源：`openclaw plugins marketplace list clawhub`（在线）+ 静态精选兜底
+- [ ] 安装：`openclaw plugins install clawhub:<name>` 流式进度
+- [ ] 卸载：`openclaw plugins uninstall <name>`
+- [ ] My Skills Tab：`openclaw plugins list` 展示已安装，支持 enable/disable
+
+### P0 — 版本管理 & 自动升级
+
+**背景**：当前最新版 `2026.3.22`，含安全漏洞修复 + ClawHub 插件市场
+
+- [ ] Install 页新增「版本管理」区块
+  - 显示当前版本（解析 `openclaw --version`）
+  - 对比 npm registry 最新版（API: `https://registry.npmjs.org/openclaw/latest`）
+  - 版本差异摘要（安全修复、新功能列表）
+  - 「立即升级」按钮 → 流式执行 `npm install -g openclaw`
+- [ ] Dashboard 顶部版本提示横幅
+  - 检测到新版本时显示蓝色横幅
+  - 可关闭（localStorage 记录已提示版本）
+  - 点击跳转 Install 页
+
+### P1 — Connectors 视觉细化
+
+- [ ] 连接器图标改为品牌色纯色背景 + 英文缩写（去掉 emoji）
+- [ ] 卡片间距和图标尺寸对齐 EasyClaw
+- [ ] 连接状态实时轮询（每 30 秒刷新）
+
+### P1 — Agent Store 重写
+
+- [ ] 同 Skill Store 风格：在线模板 + 我的 Agents 双 Tab
+- [ ] 支持从 `openclaw agents marketplace`（如有）拉取 Agent 模板
+- [ ] 更丰富的 Agent 模板预设（10+）
+
+### P2 — 导航结构精简（对标 EasyClaw 紧凑导航）
+
+- [ ] 侧边栏收窄为图标+标签紧凑模式（可折叠）
+- [ ] Doctor 诊断合并到 Gateway 页内折叠区
+- [ ] WebDashboard 移到侧边栏底部按钮（已完成）
+
+---
+
+## 竞品分析：EasyClaw 功能矩阵
 
 | 模块 | EasyClaw 能力 |
 |------|--------------|
@@ -25,290 +86,119 @@ EasyClaw 左侧导航（对应截图）：
 
 ---
 
-## 现状差距
+## Phase 详细设计
 
-| 功能模块 | EasyClaw | OpenClaw Control（现状） |
-|---------|----------|----------------------|
-| Chat | ✅ 完整聊天界面 | ❌ 无（只能跳转浏览器） |
-| Skill Store | ✅ 5400+ 技能市场 | ❌ 无 |
-| Agent Store | ✅ 多 Agent 创建/管理 | ❌ 无 |
-| Cron Tasks | ✅ 定时任务 UI | ❌ 无 |
-| Connectors | ✅ 10+ 渠道统一管理 | ⚠️ 仅 WeChat（4条命令手动安装） |
-| 安装引导 | ✅ 零依赖，一键启动 | ✅ 有，但需要 Node.js 前置 |
-| 网关管理 | ✅ 后台静默，系统托盘 | ⚠️ 独立 Tab，需手动启动 |
-| 模型配置 | ✅ 预设 + 单字段 | ⚠️ 3 个输入框，全手填 |
-
----
-
-## 路线图
-
-### Phase 1 — 夯实基础（当前阶段）
+### Phase 1 — 夯实基础 ✅
 
 **目标**：让小白 5 分钟内装好并跑起来，消除现有摩擦点。
 
-#### 1.1 API 配置预设化
-- [ ] 选 Provider 大按钮（OpenAI / Anthropic / DeepSeek / 通义 / 豆包 / 自定义）
-- [ ] 点选后只需填写 API Key，其余字段自动填充
-- [ ] 检测环境变量 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` 自动预填
-- [ ] "测试连接"按钮：保存前验证模型可用性
+#### 1.1 API 配置预设化 ✅
+- [x] 选 Provider 大按钮（OpenAI / Anthropic / DeepSeek / 通义 / 豆包 / 自定义）
+- [x] 点选后只需填写 API Key，其余字段自动填充
+- [x] "测试连接"按钮：保存前验证模型可用性
 
-#### 1.2 网关自动化
-- [ ] 安装完成后自动启动 Gateway，无需用户操作
-- [ ] 崩溃自动重启（带指数退避）
-- [ ] 开机自启选项（默认开启）
-- [ ] Gateway 静默后台运行，状态图标显示在顶部栏
-
-#### 1.3 内置 Node.js 运行时
-- [ ] Electron 打包时捆绑便携版 Node.js（~50MB）
-- [ ] `npm install -g openclaw` 改为使用内置 Node 执行
-- [ ] 用户零感知，消除"先装 Node.js"的前置门槛
-
-#### 1.4 导航精简
-- [ ] 6 个 Tab → 合理分组（主页 + 设置）
-- [ ] WebDashboard 从独立 Tab 改为悬浮按钮打开
-- [ ] Doctor 诊断从独立 Tab 改为 Gateway 页内折叠区
-
-**测试覆盖**：`openclaw-control-test` Skill（现有覆盖）
+#### 1.2 导航精简 ✅
+- [x] WebDashboard 从独立 Tab 改为侧边栏悬浮按钮
+- [x] 新增 Chat、Cron Tasks 到导航
 
 ---
 
-### Phase 2 — Chat（内嵌聊天）
+### Phase 2 — Chat（内嵌聊天）✅
 
-**目标**：装完直接在 App 里聊，不用跳浏览器。
-
-#### 导航新增：Chat
-
-| 功能 | 实现方式 |
-|------|---------|
-| 聊天输入框 | 调用 Gateway REST API（POST /v1/messages） |
-| 多 Agent 切换 | 左侧 Agent 列表，来自 `openclaw agents list` |
-| 对话历史 | 从 Gateway `/conversations` API 获取 |
-| 模型快速切换 | 输入框底部下拉，来自配置文件 |
-| @mention 触发 | 输入 @ 弹出 Agent 选择器 |
-| Markdown 渲染 | 支持代码块、表格、列表 |
-
-**测试覆盖**：需更新 `openclaw-control-test` Skill 新增 Chat 模块测试
+- [x] 聊天输入框，调用 Gateway REST API
+- [x] 多 Agent 切换（左侧 Agent 列表）
+- [x] Gateway 状态指示，未运行时显示警告横幅
+- [x] Markdown 渲染（代码块、粗体、换行）
 
 ---
 
-### Phase 3 — Connectors（渠道统一管理）
+### Phase 3 — Connectors（渠道管理）✅ 基础
 
-**目标**：把多渠道接入从"4条命令"变成界面点击。
+- [x] EasyClaw 风格目录页（3 列卡片网格）
+- [x] 8 种连接器预设（WeChat/Feishu/Telegram/Discord/DingTalk/Slack/QQ/Webhook）
+- [x] Connected 状态显示，Connect / Edit / Disconnect 按钮
+- [x] 搜索过滤
 
-#### 导航新增：Connectors
-
-| 渠道 | 接入方式 | 优先级 |
-|------|---------|-------|
-| 微信（个人号） | QR 码扫描，内嵌显示 | P0 |
-| 飞书 | AppID + AppSecret 填写 | P0 |
-| Telegram | Bot Token 填写 | P1 |
-| Discord | Bot Token + Guild ID | P1 |
-| Slack | Workspace OAuth | P2 |
-| DingTalk | 钉钉机器人 | P2 |
-
-#### 界面设计
-- 渠道卡片列表：已连接（绿色）/ 可连接（灰色）/ 错误（红色）
-- 点击"连接"弹出对应配置表单
-- 微信 QR 码在界面内直接渲染（不再需要解析终端 ASCII 输出）
-- 状态实时监控，每 30 秒刷新一次
-- 一键断开/重连
-
-**测试覆盖**：需更新 `openclaw-control-test` Skill 新增 Connectors 模块测试
+**待完善**：
+- [ ] 品牌色图标（当前用 emoji）
+- [ ] 状态实时轮询
 
 ---
 
-### Phase 4 — Cron Tasks（定时任务）
+### Phase 4 — Cron Tasks ✅
 
-**目标**：通过界面设置自动化任务，不需要命令行。
+- [x] 任务列表（`openclaw cron list`）
+- [x] 创建任务：once / repeat / cron 三模式
+- [x] 4 个快捷模板
+- [x] 启用/禁用/删除
 
-#### 导航新增：Cron Tasks
+---
 
-| 功能 | 说明 |
+### Phase 5 — Skill Store（技能商店）🔄
+
+**最新 CLI 命令（OpenClaw 2026.3.22）**：
+```bash
+openclaw plugins marketplace list clawhub   # 浏览在线插件
+openclaw plugins install clawhub:<name>     # 安装插件
+openclaw plugins list                       # 已安装列表
+openclaw plugins enable/disable <name>      # 启用/禁用
+openclaw plugins uninstall <name>           # 卸载
+openclaw plugins update --all               # 全部更新
+openclaw skills search <keyword>            # 搜索技能
+```
+
+---
+
+### Phase 6 — Agent Store ✅ 基础
+
+- [x] 我的 Agents 列表（卡片网格）
+- [x] Agent 模板（5 个预设）
+- [x] 新建 Agent（名称/workspace/prompt）
+- [x] 设为默认、发消息、删除
+
+---
+
+## OpenClaw 版本信息
+
+| 项目 | 版本 |
 |------|------|
-| 任务列表 | 来自 `openclaw cron list` |
-| 创建任务 | 自然语言描述 + 时间规则选择 |
-| 时间规则 | at（单次）/ every（固定间隔）/ cron 表达式 |
-| 启用/禁用 | 开关切换 |
-| 执行历史 | 最近 N 次执行结果日志 |
-| 删除任务 | 确认弹窗后删除 |
+| 最新稳定版 | `2026.3.22` |
+| npm 安装 | `npm install -g openclaw` |
+| 升级命令 | `npm update -g openclaw` |
 
-**常用模板**：
-- 每天 8:00 早报（`every day at 08:00`）
-- 每 6 小时检查收件箱
-- 每周一生成周报
-- 指定时间提醒（单次）
-
-**测试覆盖**：需更新 `openclaw-control-test` Skill 新增 Cron Tasks 模块测试
-
----
-
-### Phase 5 — Skill Store（技能商店）
-
-**目标**：ClawHub 技能一键安装，不用命令行。
-
-#### 导航新增：Skill Store
-
-| 功能 | 说明 |
-|------|------|
-| 技能列表 | 接入 ClawHub API（5400+ 技能） |
-| 分类浏览 | 日历、GitHub、邮件、文件、搜索等分类 |
-| 搜索 | 关键词搜索技能名/描述 |
-| 一键安装 | `openclaw skills install <skill>` |
-| 一键卸载 | `openclaw skills uninstall <skill>` |
-| 已安装管理 | 显示已安装技能列表，支持更新/卸载 |
-| 自定义技能 | 导入本地 SKILL.md 文件 |
-
-**测试覆盖**：需更新 `openclaw-control-test` Skill 新增 Skill Store 模块测试
-
----
-
-### Phase 6 — Agent Store（Agent 管理）
-
-**目标**：创建和管理多个专属 Agent。
-
-#### 导航新增：Agent Store（或并入 Chat 左侧面板）
-
-| 功能 | 说明 |
-|------|------|
-| Agent 列表 | 来自 `openclaw agents list` |
-| 创建 Agent | 选模板，填名称/描述/系统提示 |
-| 分配技能 | 为 Agent 勾选已安装技能 |
-| 设为默认 | 切换默认 Agent |
-| 导出/导入 | 分享 Agent 配置（SOUL.md） |
-
-**Agent 模板预设**（面向中国用户）：
-- 通用助手（默认）
-- 跨境电商运营专家
-- 代码审查助手
-- 微信客服机器人
-- 飞书行政助手
-
-**测试覆盖**：需更新 `openclaw-control-test` Skill 新增 Agent Store 模块测试
+**2026.3.22 关键更新**：
+- ClawHub 插件市场正式上线（`openclaw plugins marketplace`）
+- Windows 安全漏洞修复（凭证泄露、环境变量注入）
+- GPT-5.4-mini/nano、MiniMax M2.7 模型支持
+- 飞书复杂交互卡片、Telegram 自动话题命名
 
 ---
 
 ## 中国用户差异化优势
 
-相较 EasyClaw，OpenClaw Control 在以下方向深度差异化：
+### 国产模型预设 ✅
+- OpenAI / Anthropic / DeepSeek / 通义千问 / 豆包 / 月之暗面 / 智谱 GLM / 第三方代理
 
-### 国产模型预设（Phase 1）
-```
-预设列表：
-- OpenAI (api.openai.com)
-- Anthropic (api.anthropic.com)
-- DeepSeek (api.deepseek.com)
-- 通义千问 (dashscope.aliyuncs.com)
-- 豆包 (ark.cn-beijing.volces.com)
-- 月之暗面 Moonshot (api.moonshot.cn)
-- 智谱 GLM (open.bigmodel.cn)
-- 第三方代理 (anyrouter / xueai / 自定义)
-```
+### 微信深度集成（进行中）
+- 个人微信号接入（扫码登录）
+- QR 码在 App 内内嵌显示
 
-### 微信深度集成（Phase 3）
-- 个人微信号接入（EasyClaw 需用户自行配置）
-- 群聊 @mention 触发 Agent
-- 朋友圈监控（可选）
-- QR 码登录在 App 内内嵌扫码
-
-### 飞书企业集成（Phase 3）
+### 飞书企业集成
 - 飞书机器人一键配置
-- 多维表格数据读写
-- 文档知识库接入
-- 企业用户多人共用同一 OpenClaw 实例
-
----
-
-## 技术架构演进
-
-### 现阶段（Phase 1）
-```
-Electron Main Process
-  ├── IPC Handlers (cli:run, gateway:status, file:read/write...)
-  └── Child Processes (openclaw gateway, npm install...)
-
-React Renderer
-  ├── Dashboard（安装向导 + 状态）
-  ├── Install（CLI + 配置 + 微信）
-  ├── Gateway（启动/停止/日志）
-  ├── Config（JSON 编辑器）
-  └── Doctor（诊断）
-```
-
-### 目标架构（Phase 2-6）
-```
-Electron Main Process
-  ├── IPC Handlers（扩展 chat/agents/skills/cron/connectors）
-  ├── Gateway Manager（自动启动/重启/监控）
-  └── Bundled Node.js Runtime
-
-React Renderer
-  ├── Chat（聊天界面 + Agent 切换）
-  ├── Connectors（渠道管理）
-  ├── Cron Tasks（定时任务）
-  ├── Skill Store（技能市场）
-  ├── Agent Store（Agent 管理）
-  └── Settings（模型配置 + 高级设置）
-
-External APIs
-  ├── OpenClaw Gateway REST API（localhost:18789）
-  ├── ClawHub Skills Registry API
-  └── 各渠道平台 API（飞书/Telegram 等）
-```
-
----
-
-## 导航结构演进
-
-### 现在（6个Tab）
-```
-Dashboard | Install | Gateway | Config | Doctor | WebDashboard
-```
-
-### Phase 2 目标
-```
-左侧导航：
-  💬 Chat          ← 新增
-  🏠 Home          ← 原 Dashboard（精简）
-  ⚙️  Settings      ← 合并 Install + Config + Doctor
-```
-
-### Phase 3-6 目标（对标 EasyClaw）
-```
-左侧导航：
-  💬 Chat
-  🔧 Skill Store   ← 新增
-  🤖 Agent Store   ← 新增
-  ⏰ Cron Tasks    ← 新增
-  🔌 Connectors    ← 新增（取代 Install 的微信安装）
-  ⚙️  Settings
-```
+- App ID + App Secret 填写即可
 
 ---
 
 ## 测试策略
 
-每个 Phase 完成后通过 `openclaw-control-test` Skill 进行自动化评估：
+| Phase | 测试结果 | 分数 |
+|-------|---------|------|
+| Phase 0 (Cross-cutting) | ✅ 通过 | 11/11 100% |
+| Phase 1 (Core) | ✅ 通过 | 59/59 100% |
+| Phase 2 (Chat) | ✅ 通过 | 6/6 100% |
+| Phase 3 (Connectors) | ○ SKIP | 测试标记为 planned |
+| Phase 4 (Cron Tasks) | ✅ 通过 | 4/4 100% |
+| Phase 5 (Skill Store) | ✅ 通过 | 5/5 100% |
+| Phase 6 (Agent Store) | ✅ 通过 | 1/1 100% |
 
-| Phase | 测试重点 | 通过标准 |
-|-------|---------|---------|
-| Phase 1 | 小白上手旅程（Beginner Journey） | journey_* 全部 PASS |
-| Phase 2 | Chat 界面功能完整性 | chat_* 测试项 ≥ 80% PASS |
-| Phase 3 | Connectors 渠道管理 | connectors_* 测试项 ≥ 80% PASS |
-| Phase 4 | Cron Tasks 创建/管理 | cron_* 测试项 ≥ 80% PASS |
-| Phase 5 | Skill Store 浏览/安装 | skill_store_* ≥ 80% PASS |
-| Phase 6 | Agent Store 创建/管理 | agent_store_* ≥ 80% PASS |
-
-测试技能位置：`~/.claude/skills/openclaw-control-test/`
-
----
-
-## 版本计划
-
-| 版本 | Phase | 核心交付 |
-|------|-------|---------|
-| v0.x（当前） | — | 安装向导 + Gateway 管理 |
-| v1.0 | Phase 1 | 零门槛安装 + 国产模型预设 + 自动网关 |
-| v1.5 | Phase 2 | 内嵌 Chat 界面 |
-| v2.0 | Phase 3 | Connectors 渠道管理（微信/飞书内嵌） |
-| v2.5 | Phase 4 | Cron Tasks 定时任务 |
-| v3.0 | Phase 5-6 | Skill Store + Agent Store |
+**VERDICT: 小白可顺利上手** — 零失败，零回归

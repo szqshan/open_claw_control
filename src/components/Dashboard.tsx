@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Package, Settings, Zap, MessageSquare,
   CheckCircle, Circle, ChevronRight, RefreshCw,
-  Play, Globe, Stethoscope, ArrowRight, Bot, Radio
+  Play, Globe, Stethoscope, ArrowRight, Bot, Radio, X
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useCLI } from '../hooks/useCLI'
@@ -115,6 +115,8 @@ export default function Dashboard() {
   const [dashboardOpening, setDashboardOpening] = useState(false)
   const [gatewayStarting, setGatewayStarting] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   // ── Detect step completion ──────────────────────────────────────────────────
 
@@ -200,6 +202,25 @@ export default function Dashboard() {
   }, [checkConfig, checkWechat, checkStats])
 
   useEffect(() => { refresh() }, [ocInstalled, gatewayRunning])
+
+  // Version check for update banner
+  useEffect(() => {
+    if (!ocInstalled) return
+    const dismissed = localStorage.getItem('oc_version_banner_dismissed')
+    fetch('https://registry.npmjs.org/openclaw/latest', { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.version && d.version !== ocVersion) {
+          if (dismissed !== d.version) setLatestVersion(d.version)
+        }
+      })
+      .catch(() => {
+        // fallback: show known update if version is older
+        if (ocVersion && ocVersion < '2026.3.22' && dismissed !== '2026.3.22') {
+          setLatestVersion('2026.3.22')
+        }
+      })
+  }, [ocInstalled, ocVersion])
 
   // Auto-refresh gateway status
   useEffect(() => {
@@ -358,6 +379,29 @@ export default function Dashboard() {
           <RefreshCw size={13} className={checking ? 'spinner' : ''} />刷新
         </button>
       </div>
+
+      {/* Version update banner */}
+      {latestVersion && !bannerDismissed && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/8 border border-blue-500/20">
+          <div className="w-7 h-7 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+            <ArrowRight size={14} className="text-blue-400 rotate-[-90deg]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-blue-400 text-sm font-medium">新版本 {latestVersion} 可用</span>
+            <span className="text-[#666] text-xs ml-2">含安全修复 + ClawHub 插件市场</span>
+          </div>
+          <button onClick={() => setActiveTab('install')}
+            className="text-blue-400 text-xs hover:text-blue-300 transition-colors px-3 py-1 rounded-lg border border-blue-500/25 hover:bg-blue-500/10 flex-shrink-0">
+            升级
+          </button>
+          <button onClick={() => {
+            localStorage.setItem('oc_version_banner_dismissed', latestVersion)
+            setBannerDismissed(true)
+          }} className="text-[#555] hover:text-[#888] transition-colors flex-shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="space-y-2">
