@@ -46,11 +46,10 @@ const PROVIDER_PRESETS: ProviderPreset[] = [
 ]
 
 const WEIXIN_STEPS_WIN = [
-  { cmd: 'npm install -g openclaw',                                       label: 'Step 1: 安装 OpenClaw CLI' },
-  { cmd: 'openclaw.cmd plugins install "@tencent-weixin/openclaw-weixin"', label: 'Step 2: 安装微信插件' },
-  { cmd: 'openclaw.cmd channels login --channel openclaw-weixin',          label: 'Step 3: 登录微信 Channel' },
-  { cmd: 'openclaw.cmd gateway stop',                                      label: 'Step 4a: 停止 Gateway' },
-  { cmd: 'openclaw.cmd gateway',                                           label: 'Step 4b: 启动 Gateway' },
+  { cmd: 'openclaw.cmd plugins install "@tencent-weixin/openclaw-weixin"', label: 'Step 1: 安装微信插件' },
+  { cmd: 'openclaw.cmd channels login --channel openclaw-weixin',          label: 'Step 2: 登录微信（扫描二维码）' },
+  { cmd: 'openclaw.cmd gateway stop',                                      label: 'Step 3: 停止 Gateway' },
+  { cmd: 'openclaw.cmd gateway',                                           label: 'Step 4: 重启 Gateway（使插件生效）' },
 ]
 
 const WEIXIN_CMD_UNIX = 'npx -y @tencent-weixin/openclaw-weixin-cli@latest install'
@@ -68,13 +67,7 @@ const isQrLine = (s: string) => {
   return blocks > s.length * 0.5 && s.length > 4
 }
 
-type Prereq = { name: string; cmd: string; version?: string; ok?: boolean; checking?: boolean }
-
-const PREREQS: Prereq[] = [
-  { name: 'Node.js', cmd: 'node --version' },
-  { name: 'npm',     cmd: 'npm --version' },
-  { name: 'npx',     cmd: 'npx --version' },
-]
+type EnvStatus = { checking: boolean; done: boolean; ok: boolean; nodeVer: string; npmVer: string; error: string }
 
 export default function Install() {
   const { ocInstalled, setOcInstalled, setOcVersion, ocVersion, setGatewayRunning, setShowWelcome } = useStore()
@@ -98,9 +91,7 @@ export default function Install() {
   const [wxLogs, setWxLogs] = useState<Array<{ text: string; isQr?: boolean }>>([])
   const [wxStep, setWxStep] = useState('')
 
-  const [prereqs, setPrereqs] = useState<Prereq[]>(PREREQS.map(p => ({ ...p })))
-  const [prereqChecking, setPrereqChecking] = useState(false)
-  const [prereqDone, setPrereqDone] = useState(false)
+  const [envStatus, setEnvStatus] = useState<EnvStatus>({ checking: false, done: false, ok: false, nodeVer: '', npmVer: '', error: '' })
 
   // GUI config wizard state
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
@@ -152,24 +143,27 @@ export default function Install() {
   }
 
   const checkPrereqs = async () => {
-    setPrereqChecking(true)
-    setPrereqDone(false)
-    const results: Prereq[] = PREREQS.map(p => ({ ...p, checking: true, ok: undefined as boolean | undefined, version: undefined as string | undefined }))
-    setPrereqs(results)
-    for (let i = 0; i < results.length; i++) {
-      const r = { ...results[i] }
-      const res = await window.openclaw.runShell(r.cmd)
-      r.ok = res.exitCode === 0
-      r.version = res.stdout.split('\n')[0].trim() || res.stderr.split('\n')[0].trim()
-      r.checking = false
-      results[i] = r
-      setPrereqs([...results])
+    setEnvStatus({ checking: true, done: false, ok: false, nodeVer: '', npmVer: '', error: '' })
+    try {
+      const [nodeRes, npmRes] = await Promise.all([
+        window.openclaw.runShell('node --version'),
+        window.openclaw.runShell('npm --version'),
+      ])
+      const nodeOk = nodeRes.exitCode === 0
+      const npmOk = npmRes.exitCode === 0
+      const ok = nodeOk && npmOk
+      setEnvStatus({
+        checking: false, done: true, ok,
+        nodeVer: nodeRes.stdout.trim() || nodeRes.stderr.trim(),
+        npmVer: npmRes.stdout.trim() || npmRes.stderr.trim(),
+        error: !nodeOk ? 'Node.js 未安装，请访问 nodejs.org 下载安装' : !npmOk ? 'npm 未找到，请重新安装 Node.js' : '',
+      })
+    } catch (e) {
+      setEnvStatus({ checking: false, done: true, ok: false, nodeVer: '', npmVer: '', error: String(e) })
     }
-    setPrereqChecking(false)
-    setPrereqDone(true)
   }
 
-  const prereqsAllOk = prereqDone && prereqs.every(p => p.ok)
+  const prereqsAllOk = envStatus.done && envStatus.ok
 
   const checkInstall = async () => {
     setChecking(true)
@@ -805,60 +799,64 @@ export default function Install() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck size={13} className="text-[#666]" />
-              <span className="text-xs text-[#666] uppercase tracking-wider">先决条件检测</span>
+              <span className="text-xs text-[#666] uppercase tracking-wider">运行环境检测</span>
             </div>
             <button
               onClick={checkPrereqs}
-              disabled={prereqChecking}
+              disabled={envStatus.checking}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-[#666] bg-[#1a1a1a] border border-[#2a2a2a] hover:text-white transition-all disabled:opacity-50"
             >
-              <RefreshCw size={11} className={prereqChecking ? 'spinner' : ''} />
-              {prereqChecking ? '检测中...' : '检测'}
+              <RefreshCw size={11} className={envStatus.checking ? 'spinner' : ''} />
+              {envStatus.checking ? '检测中...' : '检测'}
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {prereqs.map(p => (
-              <div key={p.name} className={clsx(
-                'flex items-center gap-2 px-3 py-2 rounded-lg border text-xs',
-                p.ok === undefined ? 'border-[#2a2a2a] text-[#555]' :
-                p.ok ? 'border-green-500/20 bg-green-500/5 text-green-400' :
-                        'border-red-500/20 bg-red-500/5 text-red-400'
-              )}>
-                {p.checking ? <RefreshCw size={11} className="spinner flex-shrink-0" /> :
-                 p.ok === true ? <CheckCircle size={11} className="flex-shrink-0" /> :
-                 p.ok === false ? <XCircle size={11} className="flex-shrink-0" /> :
-                 <span className="w-[11px] h-[11px] rounded-full border border-[#333] flex-shrink-0" />}
-                <div className="min-w-0">
-                  <div className="font-medium">{p.name}</div>
-                  {p.version && <div className="text-[10px] opacity-70 truncate">{p.version}</div>}
-                  {p.ok === false && <div className="text-[10px] opacity-70">未找到</div>}
+          {/* Single combined env row */}
+          <div className={clsx(
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg border text-xs',
+            !envStatus.done ? 'border-[#2a2a2a] text-[#555]' :
+            envStatus.ok ? 'border-green-500/20 bg-green-500/5 text-green-400' :
+                           'border-red-500/20 bg-red-500/5 text-red-400'
+          )}>
+            {envStatus.checking
+              ? <RefreshCw size={13} className="spinner flex-shrink-0" />
+              : envStatus.ok
+                ? <CheckCircle size={13} className="flex-shrink-0" />
+                : envStatus.done
+                  ? <XCircle size={13} className="flex-shrink-0" />
+                  : <span className="w-[13px] h-[13px] rounded-full border border-[#333] flex-shrink-0" />}
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">Node.js 运行环境</div>
+              {envStatus.done && envStatus.ok && (
+                <div className="text-[10px] opacity-70 mt-0.5">
+                  node {envStatus.nodeVer} · npm {envStatus.npmVer}
                 </div>
-              </div>
-            ))}
-          </div>
-          {prereqDone && !prereqsAllOk && (
-            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/5 border border-red-500/15">
-              <AlertTriangle size={12} className="text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400">
-                缺少必要环境。请先安装{' '}
-                {prereqs.filter(p => !p.ok).map(p => p.name).join('、')}。
-                {prereqs.find(p => p.name === 'Node.js' && !p.ok) && ' 访问 nodejs.org 下载安装包。'}
-              </p>
+              )}
+              {envStatus.done && !envStatus.ok && (
+                <div className="text-[10px] mt-0.5 opacity-90">{envStatus.error}</div>
+              )}
+              {!envStatus.done && !envStatus.checking && (
+                <div className="text-[10px] opacity-50 mt-0.5">点击"检测"按钮验证</div>
+              )}
             </div>
-          )}
-          {prereqDone && prereqsAllOk && (
-            <p className="text-xs text-green-400">✓ 环境就绪，可以安装</p>
-          )}
+            {envStatus.done && !envStatus.ok && (
+              <button
+                onClick={() => window.openclaw.openExternal('https://nodejs.org')}
+                className="text-[10px] text-blue-400 hover:text-blue-300 underline underline-offset-2 flex-shrink-0"
+              >
+                下载 Node.js
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={handleWeixinInstall}
-            disabled={wxInstalling || !ocInstalled || (prereqDone && !prereqsAllOk)}
+            disabled={wxInstalling || !ocInstalled || (envStatus.done && !envStatus.ok)}
             className={clsx(
               'flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border',
               'bg-green-500/15 text-green-400 border-green-500/20 hover:bg-green-500/25',
-              (wxInstalling || !ocInstalled || (prereqDone && !prereqsAllOk)) && 'opacity-50 cursor-not-allowed'
+              (wxInstalling || !ocInstalled || (envStatus.done && !envStatus.ok)) && 'opacity-50 cursor-not-allowed'
             )}
           >
             {wxInstalling ? <RefreshCw size={14} className="spinner" /> : <MessageCircle size={14} />}
@@ -870,7 +868,7 @@ export default function Install() {
           {!ocInstalled && (
             <span className="text-[#555] text-xs">请先安装 OpenClaw</span>
           )}
-          {!prereqDone && !wxInstalling && ocInstalled && (
+          {!envStatus.done && !wxInstalling && ocInstalled && (
             <span className="text-[#555] text-xs">建议先点击"检测"验证环境</span>
           )}
         </div>
