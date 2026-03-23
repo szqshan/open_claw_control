@@ -256,6 +256,18 @@ export default function Gateway() {
         <p className="text-[#666] text-sm mt-0.5">管理 OpenClaw HTTP Gateway (端口 18789)</p>
       </div>
 
+      {/* Contextual tip */}
+      {!gatewayRunning && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-[#1e1e1e] bg-[#0f0f0f]">
+          <Zap size={14} className="text-green-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[#777] text-xs leading-relaxed">
+            <span className="text-[#aaa] font-medium">Gateway 是什么？</span> 运行在本地的 HTTP 服务器。
+            微信/飞书把消息发给它 → 它转给 AI → AI 回复再发回来。
+            <span className="text-green-400"> 点击下方"启动"按钮即可开始。</span>
+          </p>
+        </div>
+      )}
+
       {/* Status Card */}
       <div className="rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-6">
         <div className="flex items-center justify-between">

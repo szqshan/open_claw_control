@@ -281,8 +281,8 @@ export default function Config() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Config</h1>
-          <p className="text-[#666] text-sm mt-0.5">编辑 OpenClaw 配置文件</p>
+          <h1 className="text-xl font-bold text-white">配置</h1>
+          <p className="text-[#666] text-sm mt-0.5">编辑 OpenClaw 配置文件 · {CONFIG_PATH}</p>
         </div>
         <div className="flex gap-2 items-center">
           {/* View mode toggle */}

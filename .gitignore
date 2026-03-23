@@ -4,3 +4,7 @@ dist-electron/
 release/
 *.log
 .DS_Store
+out/
+.claude/
+test_main.js
+vite.test.config.mjs
