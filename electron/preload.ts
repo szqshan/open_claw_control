@@ -72,6 +72,11 @@ contextBridge.exposeInMainWorld('openclaw', {
     return ipcRenderer.invoke('shell:run', cmd)
   },
 
+  // Get gateway dashboard URL with auth token (quick, 5s timeout)
+  getDashboardUrl: (): Promise<string | null> => {
+    return ipcRenderer.invoke('gateway:dashboardUrl')
+  },
+
   // Open URL in external browser
   openExternal: (url: string): void => {
     ipcRenderer.invoke('shell:open', url)
@@ -80,5 +85,33 @@ contextBridge.exposeInMainWorld('openclaw', {
   // Test model API connectivity
   testModel: (opts: { baseUrl: string; apiKey: string; modelId: string; apiType: string }): Promise<{ ok: boolean; message: string }> => {
     return ipcRenderer.invoke('model:test', opts)
-  }
+  },
+
+  // Get environment variable values (for auto-filling API keys)
+  getEnvVars: (keys: string[]): Promise<Record<string, string>> => {
+    return ipcRenderer.invoke('env:get', keys)
+  },
+
+  // Gateway watchdog: start/stop background-managed gateway with crash recovery
+  startManagedGateway: (): Promise<boolean> => {
+    return ipcRenderer.invoke('gateway:watchdog-start')
+  },
+  stopManagedGateway: (): Promise<boolean> => {
+    return ipcRenderer.invoke('gateway:watchdog-stop')
+  },
+
+  // Listen for watchdog restart events
+  onGatewayWatchdogEvent: (cb: (event: { type: string; attempt?: number; delay?: number; attempts?: number }) => void): (() => void) => {
+    const listener = (_: Electron.IpcRendererEvent, payload: { type: string; attempt?: number; delay?: number; attempts?: number }) => cb(payload)
+    ipcRenderer.on('gateway:watchdog-event', listener)
+    return () => ipcRenderer.removeListener('gateway:watchdog-event', listener)
+  },
+
+  // System login item (auto-launch on OS boot)
+  getLoginItemEnabled: (): Promise<boolean> => {
+    return ipcRenderer.invoke('app:get-login-item')
+  },
+  setLoginItemEnabled: (enable: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke('app:set-login-item', enable)
+  },
 })

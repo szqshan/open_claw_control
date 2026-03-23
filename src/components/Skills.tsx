@@ -28,6 +28,9 @@ export default function Skills() {
   const [plugins, setPlugins] = useState<Plugin[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Skills search filter
+  const [skillSearch, setSkillSearch] = useState('')
+
   // ClaWHub
   const [hubSearch, setHubSearch] = useState('')
   const [hubInstalling, setHubInstalling] = useState<string | null>(null)
@@ -142,7 +145,7 @@ export default function Skills() {
   }
 
   const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
-    { id: 'skills', label: 'Skills', icon: Puzzle },
+    { id: 'skills', label: '已安装', icon: Puzzle },
     { id: 'plugins', label: 'Plugins', icon: Package },
     { id: 'clawhub', label: 'ClaWHub', icon: Download },
   ]
@@ -175,6 +178,16 @@ export default function Skills() {
       {/* Skills Tab */}
       {activeTab === 'skills' && (
         <div className="space-y-4">
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]" />
+            <input
+              type="text"
+              value={skillSearch}
+              onChange={e => setSkillSearch(e.target.value)}
+              placeholder="搜索已安装技能..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-white text-sm placeholder-[#444] focus:outline-none focus:border-orange-500/50"
+            />
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-[#666] text-sm">{skills.length} 个技能</p>
             <div className="flex gap-2">
@@ -208,7 +221,7 @@ export default function Skills() {
             </div>
           ) : (
             <div className="space-y-2">
-              {skills.map(skill => (
+              {skills.filter(s => !skillSearch || s.name.toLowerCase().includes(skillSearch.toLowerCase())).map(skill => (
                 <div key={skill.name} className="flex items-center justify-between rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] px-5 py-3.5 hover:border-[#3a3a3a] transition-all">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">

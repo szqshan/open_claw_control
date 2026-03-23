@@ -8,7 +8,11 @@
     "build": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite build && electron-builder",
     "preview": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite preview",
     "electron:dev": "node start-dev.mjs",
-    "electron:build": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite build && electron-builder"
+    "electron:build": "cross-env ELECTRON_RUN_AS_NODE=0 electron-vite build && electron-builder",
+    "prepare-runtime": "node scripts/prepare-node-runtime.mjs",
+    "prepare-runtime:win32": "node scripts/prepare-node-runtime.mjs win32",
+    "prepare-runtime:mac": "node scripts/prepare-node-runtime.mjs darwin",
+    "prepare-runtime:linux": "node scripts/prepare-node-runtime.mjs linux"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
@@ -43,6 +47,13 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node-runtime/${os}",
+        "to": "node-runtime/${os}",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": "nsis"

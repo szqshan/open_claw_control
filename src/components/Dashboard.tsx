@@ -181,14 +181,11 @@ export default function Dashboard() {
   }, [ocInstalled, run])
 
   // Open Gateway web dashboard with proper token URL
-  // Output format: "Dashboard URL: http://127.0.0.1:18789/#token=xxx"
   const openDashboard = async () => {
     setDashboardOpening(true)
     try {
-      const res = await run(['dashboard', '--no-open'])
-      const output = res.stdout + res.stderr
-      const match = output.match(/https?:\/\/[\w.]+:\d+[^\s\n]+/)
-      window.openclaw.openExternal(match ? match[0].trim() : 'http://127.0.0.1:18789')
+      const url = await window.openclaw.getDashboardUrl()
+      window.openclaw.openExternal(url || 'http://127.0.0.1:18789')
     } catch {
       window.openclaw.openExternal('http://127.0.0.1:18789')
     } finally {
@@ -267,7 +264,7 @@ export default function Dashboard() {
               {dashboardOpening ? <RefreshCw size={14} className="spinner" /> : <Globe size={14} />}
               浏览器测试对话
             </button>
-            <button onClick={() => setActiveTab('doctor')}
+            <button onClick={() => setActiveTab('gateway')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1a1a1a] text-[#888] text-sm border border-[#2a2a2a] hover:text-white transition-all">
               <Stethoscope size={14} /> 运行诊断
             </button>
@@ -505,6 +502,41 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* Quick actions — available at all stages */}
+      <div className="rounded-xl border border-[#1e1e1e] bg-[#0f0f0f] p-4 space-y-3">
+        <p className="text-[#444] text-[10px] uppercase tracking-wider font-semibold">快速操作</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-[#1a1a1a] text-[#777] border-[#2a2a2a] hover:text-[#ccc] hover:border-[#3a3a3a]"
+          >
+            <MessageSquare size={12} />
+            向 Agent 发消息
+          </button>
+          <button
+            onClick={openDashboard}
+            disabled={!gatewayRunning || dashboardOpening}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-[#1a1a1a] text-[#777] border-[#2a2a2a] hover:text-[#ccc] hover:border-[#3a3a3a] disabled:opacity-40"
+          >
+            <Globe size={12} />
+            打开 Web 界面
+          </button>
+          <button
+            onClick={() => setActiveTab('gateway')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border bg-[#1a1a1a] text-[#777] border-[#2a2a2a] hover:text-[#ccc] hover:border-[#3a3a3a]"
+          >
+            <Stethoscope size={12} />
+            运行诊断
+          </button>
+        </div>
+      </div>
+
+      {/* Activity log placeholder */}
+      <div className="rounded-xl border border-[#1e1e1e] bg-[#0f0f0f] p-4">
+        <p className="text-[#444] text-[10px] uppercase tracking-wider font-semibold mb-2">活动日志</p>
+        <p className="text-[#333] text-xs">完成安装后将显示 Gateway 活动记录</p>
+      </div>
     </div>
   )
 }

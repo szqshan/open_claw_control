@@ -1,12 +1,10 @@
 import { useEffect, useState, useRef, useCallback, createElement } from 'react'
 import { RefreshCw, ExternalLink, Zap, ChevronRight, AlertCircle } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { useCLI } from '../hooks/useCLI'
 import clsx from 'clsx'
 
 export default function WebDashboard() {
   const { gatewayRunning, setActiveTab } = useStore()
-  const { run } = useCLI()
 
   const webviewRef = useRef<HTMLElement>(null)
   const [dashboardUrl, setDashboardUrl] = useState('')
@@ -19,20 +17,14 @@ export default function WebDashboard() {
     setError('')
     setDashboardUrl('')
     try {
-      const res = await run(['dashboard', '--no-open'])
-      const output = res.stdout + res.stderr
-      const match = output.match(/https?:\/\/[\w.]+:\d+[^\s\n]+/)
-      if (match) {
-        setDashboardUrl(match[0].trim())
-      } else {
-        setError('无法获取仪表盘 URL，请确保 Gateway 正在运行')
-      }
+      const url = await window.openclaw.getDashboardUrl()
+      setDashboardUrl(url || 'http://127.0.0.1:18789')
     } catch (e) {
       setError('获取失败: ' + String(e))
     } finally {
       setFetching(false)
     }
-  }, [run])
+  }, [])
 
   useEffect(() => {
     if (gatewayRunning) {

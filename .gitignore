@@ -8,3 +8,5 @@ out/
 .claude/
 test_main.js
 vite.test.config.mjs
+# Bundled Node.js runtime binaries (run npm run prepare-runtime to generate)
+node-runtime/

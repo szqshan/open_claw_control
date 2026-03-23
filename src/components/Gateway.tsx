@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Zap, Play, Square, RotateCw, RefreshCw, Terminal,
-  FileText, StopCircle, Wrench, AlertTriangle, CheckCircle
+  FileText, StopCircle, Wrench, AlertTriangle, CheckCircle,
+  ChevronDown, ChevronRight, HeartPulse, XCircle, AlertCircle,
+  ToggleLeft, ToggleRight
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useCLI } from '../hooks/useCLI'
@@ -20,8 +22,33 @@ const stripAnsi = (s: string) =>
 
 type FixState = 'idle' | 'needed' | 'fixing' | 'fixed' | 'error'
 
+// ── Inline Doctor panel (shared logic) ────────────────────────────────────────
+
+interface CheckItem { label: string; status: 'pass' | 'fail' | 'warn' | 'unknown'; detail?: string }
+
+function parseCheckLine(line: string): CheckItem | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+  let status: CheckItem['status'] = 'unknown'
+  if (/✓|✅|PASS|pass|OK|ok|\[ok\]|\[pass\]|success|found|installed/i.test(trimmed)) status = 'pass'
+  else if (/✗|✘|❌|FAIL|fail|ERROR|error|\[error\]|\[fail\]|not found|missing|not installed/i.test(trimmed)) status = 'fail'
+  else if (/⚠|WARN|warn|WARNING|warning|\[warn\]/i.test(trimmed)) status = 'warn'
+  const match = trimmed.match(/^[✓✗⚠✅❌]\s*(.+)/)
+  let label = trimmed
+  let detail = ''
+  if (match) {
+    const rest = match[1]
+    const colonIdx = rest.indexOf(':')
+    if (colonIdx > 0) { label = rest.slice(0, colonIdx).trim(); detail = rest.slice(colonIdx + 1).trim() }
+    else label = rest.trim()
+  }
+  return { label, status, detail }
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
 export default function Gateway() {
-  const { gatewayRunning, setGatewayRunning, gatewayLogs, appendGatewayLog, setGatewayLogs, clearGatewayLogs } = useStore()
+  const { gatewayRunning, setGatewayRunning, gatewayLogs, appendGatewayLog, setGatewayLogs, clearGatewayLogs, gatewayAutoStart, setGatewayAutoStart } = useStore()
   const { run, stream } = useCLI()
   const [loading, setLoading] = useState<'start' | 'stop' | 'restart' | null>(null)
   const [checkingStatus, setCheckingStatus] = useState(false)
@@ -32,6 +59,13 @@ export default function Gateway() {
   const logEndRef = useRef<HTMLDivElement>(null)
   const monitorRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const tailAbortRef = useRef(false)
+
+  // Doctor section state
+  const [showDoctor, setShowDoctor] = useState(false)
+  const [doctorRunning, setDoctorRunning] = useState(false)
+  const [doctorItems, setDoctorItems] = useState<CheckItem[]>([])
+  const [doctorDone, setDoctorDone] = useState(false)
+  const doctorLogEndRef = useRef<HTMLDivElement>(null)
 
   const addLog = useCallback((text: string, type = 'info') => {
     const clean = stripAnsi(text)
@@ -246,6 +280,31 @@ export default function Gateway() {
       case 'waiting': return 'text-blue-400'
       default:        return 'text-green-300'
     }
+  }
+
+  const handleToggleAutoStart = async (enable: boolean) => {
+    setGatewayAutoStart(enable)
+    if (enable) {
+      await window.openclaw.startManagedGateway().catch(() => {})
+    } else {
+      await window.openclaw.stopManagedGateway().catch(() => {})
+    }
+  }
+
+  const runDoctor = async () => {
+    setDoctorRunning(true)
+    setDoctorDone(false)
+    setDoctorItems([])
+    try {
+      await stream(['doctor'], (line) => {
+        doctorLogEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        const item = parseCheckLine(line)
+        if (item && item.status !== 'unknown') {
+          setDoctorItems(prev => [...prev, item])
+        }
+      })
+    } catch { /* ignore */ }
+    finally { setDoctorRunning(false); setDoctorDone(true) }
   }
 
   return (
@@ -479,6 +538,93 @@ export default function Gateway() {
           )}
           <div ref={logEndRef} />
         </div>
+      </div>
+
+      {/* ── Auto-start Options ── */}
+      <div className="rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {gatewayAutoStart
+              ? <ToggleRight size={18} className="text-green-400" />
+              : <ToggleLeft size={18} className="text-[#555]" />
+            }
+            <div>
+              <p className="text-sm font-medium text-white">应用启动时自动运行 Gateway</p>
+              <p className="text-xs text-[#555] mt-0.5">开启后每次打开 OpenClaw Control 都会自动启动 Gateway，崩溃时自动重启（最多 5 次）</p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleToggleAutoStart(!gatewayAutoStart)}
+            className={clsx(
+              'relative w-11 h-6 rounded-full transition-colors flex-shrink-0',
+              gatewayAutoStart ? 'bg-green-500/60' : 'bg-[#333]'
+            )}
+          >
+            <span className={clsx(
+              'absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform',
+              gatewayAutoStart ? 'translate-x-5' : 'translate-x-0.5'
+            )} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Doctor Diagnostic (collapsible) ── */}
+      <div className="rounded-xl border border-[#2a2a2a] bg-[#1a1a1a] overflow-hidden">
+        <button
+          onClick={() => setShowDoctor(v => !v)}
+          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors text-left"
+        >
+          {showDoctor
+            ? <ChevronDown size={14} className="text-[#555]" />
+            : <ChevronRight size={14} className="text-[#555]" />
+          }
+          <HeartPulse size={15} className="text-[#555]" />
+          <span className="text-sm font-medium text-[#888]">诊断 · Doctor</span>
+          <span className="text-xs text-[#444] ml-1">— OpenClaw 健康检查</span>
+        </button>
+
+        {showDoctor && (
+          <div className="border-t border-[#2a2a2a] p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={runDoctor}
+                disabled={doctorRunning}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-[#888] text-sm hover:text-white transition-all disabled:opacity-50"
+              >
+                {doctorRunning ? <RefreshCw size={13} className="spinner" /> : <Play size={13} />}
+                {doctorRunning ? '检测中...' : '运行诊断'}
+              </button>
+              {doctorDone && doctorItems.length > 0 && (
+                <span className="text-xs text-[#555]">
+                  <span className="text-green-400">{doctorItems.filter(i => i.status === 'pass').length} 通过</span>
+                  {doctorItems.filter(i => i.status === 'fail').length > 0 && (
+                    <span className="text-red-400 ml-2">{doctorItems.filter(i => i.status === 'fail').length} 失败</span>
+                  )}
+                  {doctorItems.filter(i => i.status === 'warn').length > 0 && (
+                    <span className="text-yellow-400 ml-2">{doctorItems.filter(i => i.status === 'warn').length} 警告</span>
+                  )}
+                </span>
+              )}
+            </div>
+
+            {doctorItems.length > 0 && (
+              <div className="space-y-1">
+                {doctorItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 px-2 py-1.5 rounded-lg bg-[#0f0f0f]">
+                    {item.status === 'pass' && <CheckCircle size={13} className="text-green-400 flex-shrink-0 mt-0.5" />}
+                    {item.status === 'fail' && <XCircle size={13} className="text-red-400 flex-shrink-0 mt-0.5" />}
+                    {item.status === 'warn' && <AlertCircle size={13} className="text-yellow-400 flex-shrink-0 mt-0.5" />}
+                    <div className="min-w-0">
+                      <span className="text-xs text-[#ccc]">{item.label}</span>
+                      {item.detail && <span className="text-xs text-[#555] ml-1.5">{item.detail}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div ref={doctorLogEndRef} />
+          </div>
+        )}
       </div>
     </div>
   )

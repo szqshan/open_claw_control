@@ -20,6 +20,8 @@ interface State {
   clearGatewayLogs: () => void
   showWelcome: boolean
   setShowWelcome: (v: boolean) => void
+  gatewayAutoStart: boolean
+  setGatewayAutoStart: (v: boolean) => void
 }
 
 export const useStore = create<State>((set) => ({
@@ -39,5 +41,11 @@ export const useStore = create<State>((set) => ({
   setShowWelcome: (v) => {
     if (!v) localStorage.setItem('oc_welcomed', '1')
     set({ showWelcome: v })
+  },
+  gatewayAutoStart: localStorage.getItem('gw_autostart') === '1',
+  setGatewayAutoStart: (v) => {
+    if (v) localStorage.setItem('gw_autostart', '1')
+    else localStorage.removeItem('gw_autostart')
+    set({ gatewayAutoStart: v })
   },
 }))

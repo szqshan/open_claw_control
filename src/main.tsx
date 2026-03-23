@@ -15,8 +15,15 @@ if (typeof window !== 'undefined' && !window.openclaw) {
     streamShell: async (_cmd: string, onLine: (l: string) => void) => { onLine('(mock: not in Electron)') },
     getPlatform: async () => 'win32',
     runShell: async () => ({ stdout: '(mock)', stderr: '', exitCode: 0 }),
+    getDashboardUrl: async () => null,
     openExternal: () => {},
     testModel: async () => ({ ok: true, message: '(mock: browser env, skipping real test)' }),
+    getEnvVars: async () => ({}),
+    startManagedGateway: async () => false,
+    stopManagedGateway: async () => false,
+    onGatewayWatchdogEvent: () => () => {},
+    getLoginItemEnabled: async () => false,
+    setLoginItemEnabled: async () => false,
   }
 }
 

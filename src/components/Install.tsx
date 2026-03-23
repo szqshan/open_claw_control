@@ -38,11 +38,28 @@ interface ProviderPreset {
   modelName: string
 }
 
+// Which env var holds the API key for each provider (for auto-fill)
+const PROVIDER_ENV_KEY: Record<string, string> = {
+  openai:     'OPENAI_API_KEY',
+  anthropic:  'ANTHROPIC_API_KEY',
+  deepseek:   'DEEPSEEK_API_KEY',
+  qwen:       'DASHSCOPE_API_KEY',
+  doubao:     'ARK_API_KEY',
+  moonshot:   'MOONSHOT_API_KEY',
+  glm:        'ZHIPUAI_API_KEY',
+  openrouter: 'OPENROUTER_API_KEY',
+}
+
 const PROVIDER_PRESETS: ProviderPreset[] = [
-  { id: 'openai',    name: 'OpenAI',         baseUrl: 'https://api.openai.com/v1',      api: 'openai-completions',  modelId: 'gpt-4o',              modelName: 'GPT-4o' },
-  { id: 'anthropic', name: 'Anthropic',       baseUrl: 'https://api.anthropic.com',      api: 'anthropic-messages',  modelId: 'claude-sonnet-4-6',   modelName: 'Claude Sonnet 4.6' },
-  { id: 'openrouter',name: 'OpenRouter',      baseUrl: 'https://openrouter.ai/api/v1',   api: 'openai-completions',  modelId: 'openai/gpt-4o',       modelName: 'GPT-4o (via OpenRouter)' },
-  { id: 'custom',    name: '自定义',          baseUrl: '',                               api: 'openai-completions',  modelId: '',                    modelName: '' },
+  { id: 'openai',    name: 'OpenAI',       baseUrl: 'https://api.openai.com/v1',                         api: 'openai-completions',  modelId: 'gpt-4o',              modelName: 'GPT-4o' },
+  { id: 'anthropic', name: 'Anthropic',    baseUrl: 'https://api.anthropic.com',                         api: 'anthropic-messages',  modelId: 'claude-sonnet-4-6',   modelName: 'Claude Sonnet 4.6' },
+  { id: 'deepseek',  name: 'DeepSeek',     baseUrl: 'https://api.deepseek.com/v1',                       api: 'openai-completions',  modelId: 'deepseek-chat',       modelName: 'DeepSeek Chat' },
+  { id: 'qwen',      name: '通义千问',      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', api: 'openai-completions',  modelId: 'qwen-max',            modelName: '通义千问 Max' },
+  { id: 'doubao',    name: '豆包',          baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',          api: 'openai-completions',  modelId: 'doubao-pro-32k',      modelName: '豆包 Pro 32k' },
+  { id: 'moonshot',  name: 'Moonshot',     baseUrl: 'https://api.moonshot.cn/v1',                        api: 'openai-completions',  modelId: 'moonshot-v1-8k',      modelName: 'Moonshot v1 8k' },
+  { id: 'glm',       name: '智谱 GLM',     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',              api: 'openai-completions',  modelId: 'glm-4-flash',         modelName: 'GLM-4-Flash' },
+  { id: 'openrouter',name: 'OpenRouter',   baseUrl: 'https://openrouter.ai/api/v1',                      api: 'openai-completions',  modelId: 'openai/gpt-4o',       modelName: 'GPT-4o (via OpenRouter)' },
+  { id: 'custom',    name: '自定义',        baseUrl: '',                                                  api: 'openai-completions',  modelId: '',                    modelName: '' },
 ]
 
 const WEIXIN_STEPS_WIN = [
@@ -120,7 +137,15 @@ export default function Install() {
     loadExistingConfig()
   }, [])
 
+  useEffect(() => {
+    if (!showUninstallConfirm) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowUninstallConfirm(false) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [showUninstallConfirm])
+
   const loadExistingConfig = async () => {
+    let hasConfig = false
     try {
       const raw = await window.openclaw.readFile('~/.openclaw/openclaw.json')
       const config = JSON5.parse(raw) as {
@@ -136,9 +161,43 @@ export default function Install() {
         if (m?.id) setModelId(m.id)
         if (m?.name) setModelName(m.name)
         setSelectedPreset('custom')
+        hasConfig = true
       }
     } catch {
-      // Config doesn't exist yet — leave fields empty
+      // Config doesn't exist yet
+    }
+    // If no config found, try common env vars to pre-fill API key
+    if (!hasConfig) {
+      try {
+        const vars = await window.openclaw.getEnvVars([
+          'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'DEEPSEEK_API_KEY',
+        ])
+        if (vars['ANTHROPIC_API_KEY']) {
+          setApiKey(vars['ANTHROPIC_API_KEY'])
+          const p = PROVIDER_PRESETS.find(p => p.id === 'anthropic')!
+          setSelectedPreset('anthropic')
+          setBaseUrl(p.baseUrl)
+          setModelId(p.modelId)
+          setModelName(p.modelName)
+          setProviderApi(p.api)
+        } else if (vars['OPENAI_API_KEY']) {
+          setApiKey(vars['OPENAI_API_KEY'])
+          const p = PROVIDER_PRESETS.find(p => p.id === 'openai')!
+          setSelectedPreset('openai')
+          setBaseUrl(p.baseUrl)
+          setModelId(p.modelId)
+          setModelName(p.modelName)
+          setProviderApi(p.api)
+        } else if (vars['DEEPSEEK_API_KEY']) {
+          setApiKey(vars['DEEPSEEK_API_KEY'])
+          const p = PROVIDER_PRESETS.find(p => p.id === 'deepseek')!
+          setSelectedPreset('deepseek')
+          setBaseUrl(p.baseUrl)
+          setModelId(p.modelId)
+          setModelName(p.modelName)
+          setProviderApi(p.api)
+        }
+      } catch { /* ignore */ }
     }
   }
 
@@ -213,7 +272,21 @@ export default function Install() {
     }
   }
 
+  const isValidUrl = (url: string) => {
+    try {
+      const u = new URL(url.trim())
+      return u.protocol === 'http:' || u.protocol === 'https:'
+    } catch {
+      return false
+    }
+  }
+
   const testModel = async () => {
+    if (baseUrl.trim() && !isValidUrl(baseUrl)) {
+      setTestState('fail')
+      setTestMsg('Base URL 格式无效，请填写完整的 HTTP/HTTPS 地址（如 https://api.openai.com/v1）')
+      return
+    }
     if (!baseUrl.trim() || !apiKey.trim() || !modelId.trim()) {
       setTestState('fail')
       setTestMsg('请先填写 Base URL、API Key 和 Model ID')
@@ -244,17 +317,29 @@ export default function Install() {
     }
   }
 
-  const applyPreset = (preset: ProviderPreset) => {
+  const applyPreset = async (preset: ProviderPreset) => {
     setSelectedPreset(preset.id)
     if (preset.baseUrl) setBaseUrl(preset.baseUrl)
     if (preset.modelId) setModelId(preset.modelId)
     if (preset.modelName) setModelName(preset.modelName)
     setProviderApi(preset.api)
+    // Auto-fill API key from environment variable if current field is empty
+    const envKey = PROVIDER_ENV_KEY[preset.id]
+    if (envKey && !apiKey) {
+      try {
+        const vars = await window.openclaw.getEnvVars([envKey])
+        if (vars[envKey]) setApiKey(vars[envKey])
+      } catch { /* ignore */ }
+    }
   }
 
   const handleSaveConfig = async () => {
     if (!baseUrl.trim() || !apiKey.trim() || !modelId.trim()) {
       setConfigError('请填写 Base URL、API Key 和 Model ID')
+      return
+    }
+    if (!isValidUrl(baseUrl)) {
+      setConfigError('Base URL 格式无效，请填写完整的 HTTP/HTTPS 地址（如 https://api.openai.com/v1）')
       return
     }
     setConfigSaving(true)
@@ -564,7 +649,7 @@ export default function Install() {
               type="text"
               value={baseUrl}
               onChange={e => setBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
+              placeholder="Base URL (e.g. https://api.openai.com/v1)"
               className="w-full px-3 py-2 rounded-lg bg-[#0f0f0f] border border-[#2a2a2a] text-white text-sm font-mono placeholder-[#444] focus:outline-none focus:border-blue-500/50 transition-colors"
             />
           </div>
@@ -898,14 +983,14 @@ export default function Install() {
           <div>
             <h2 className="text-red-400 font-semibold mb-1">卸载 OpenClaw</h2>
             <p className="text-[#666] text-sm">
-              此操作将删除所有 OpenClaw 数据、配置和 Agent 信息，<strong className="text-red-400">不可撤销</strong>。
+              此操作将删除所有 OpenClaw 数据、配置和 Agent 信息，<strong className="text-red-400">无法恢复</strong>。
             </p>
           </div>
         </div>
 
         <button
           onClick={() => setShowUninstallConfirm(true)}
-          disabled={uninstalling || !ocInstalled}
+          aria-disabled={uninstalling || !ocInstalled}
           className={clsx(
             'flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border',
             'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20',
@@ -931,7 +1016,9 @@ export default function Install() {
 
       {/* Uninstall Confirmation Modal */}
       {showUninstallConfirm && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+        >
           <div className="bg-[#1a1a1a] border border-red-500/30 rounded-xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-red-400 font-semibold flex items-center gap-2">
@@ -943,7 +1030,7 @@ export default function Install() {
               </button>
             </div>
             <div className="space-y-3 mb-5">
-              <p className="text-[#aaa] text-sm">以下内容将被<strong className="text-red-400">永久删除</strong>：</p>
+              <p className="text-[#aaa] text-sm">以下内容将被<strong className="text-red-400">永久删除</strong>，<strong className="text-red-400">不可撤销</strong>：</p>
               <ul className="text-[#888] text-sm space-y-1 ml-4">
                 <li className="flex items-center gap-2"><span className="text-red-400">•</span>所有 Agent 配置和历史</li>
                 <li className="flex items-center gap-2"><span className="text-red-400">•</span>所有 Channel 绑定</li>

@@ -6,32 +6,33 @@ import {
   Radio,
   Puzzle,
   Settings,
-  HeartPulse,
   Package,
   HelpCircle,
   ChevronRight,
   CheckCircle,
   AlertCircle,
   Circle,
+  Globe,
   MessageSquare,
+  Clock,
 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import clsx from 'clsx'
 
 // Nav items split into setup (always visible) and advanced (secondary)
 const SETUP_NAV = [
-  { id: 'dashboard', label: '首页 · 上手引导', icon: LayoutDashboard },
-  { id: 'chat',      label: '仪表盘 · 对话',   icon: MessageSquare },
-  { id: 'install',   label: '安装',            icon: Package },
-  { id: 'config',    label: '配置',            icon: Settings },
-  { id: 'gateway',   label: 'Gateway',         icon: Zap },
+  { id: 'dashboard', label: 'Dashboard · 首页',   icon: LayoutDashboard },
+  { id: 'chat',      label: 'Chat · 聊天',         icon: MessageSquare },
+  { id: 'install',   label: 'Install · 安装配置',  icon: Package },
+  { id: 'gateway',   label: 'Gateway',             icon: Zap },
 ]
 
 const ADVANCED_NAV = [
-  { id: 'agents',   label: 'Agents',        icon: Bot },
-  { id: 'channels', label: 'Channels',      icon: Radio },
-  { id: 'skills',   label: 'Skills & Plugins', icon: Puzzle },
-  { id: 'doctor',   label: 'Doctor',        icon: HeartPulse },
+  { id: 'agents',   label: 'Agents',            icon: Bot },
+  { id: 'channels', label: 'Channels',          icon: Radio },
+  { id: 'skills',   label: 'Skills',            icon: Puzzle },
+  { id: 'cron',     label: 'Cron Tasks · 定时', icon: Clock },
+  { id: 'config',   label: 'Config · 配置',     icon: Settings },
 ]
 
 interface LayoutProps {
@@ -48,10 +49,6 @@ export default function Layout({ children }: LayoutProps) {
         return ocInstalled
           ? <CheckCircle size={11} className="text-green-400 flex-shrink-0" />
           : <AlertCircle size={11} className="text-orange-400 flex-shrink-0" />
-      case 'chat':
-        return gatewayRunning
-          ? <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot flex-shrink-0" />
-          : <span className="w-2 h-2 rounded-full border border-[#333] flex-shrink-0" />
       case 'gateway':
         return gatewayRunning
           ? <span className="w-2 h-2 rounded-full bg-green-400 pulse-dot flex-shrink-0" />
@@ -60,6 +57,16 @@ export default function Layout({ children }: LayoutProps) {
         return <Circle size={11} className="text-[#444] flex-shrink-0" />
       default:
         return null
+    }
+  }
+
+  const openWebDashboard = async () => {
+    try {
+      const url = await window.openclaw.getDashboardUrl()
+      if (url) window.openclaw.openExternal(url)
+      else setActiveTab('chat') // fallback: open WebDashboard tab
+    } catch {
+      setActiveTab('chat')
     }
   }
 
@@ -148,6 +155,16 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Help & version */}
           <div className="px-4 py-3 space-y-1.5">
+            {/* Open Web Dashboard floating button */}
+            {gatewayRunning && (
+              <button
+                onClick={openWebDashboard}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-green-500/70 hover:text-green-400 hover:bg-green-500/10 transition-all text-xs border border-green-500/20"
+              >
+                <Globe size={13} />
+                打开 Web 仪表盘
+              </button>
+            )}
             <button
               onClick={() => setShowWelcome(true)}
               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[#555] hover:text-[#aaa] hover:bg-[#1a1a1a] transition-all text-xs"
