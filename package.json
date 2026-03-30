@@ -45,18 +45,11 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*",
-      "dist-electron/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "node-runtime/${os}",
-        "to": "node-runtime/${os}",
-        "filter": ["**/*"]
-      }
+      "out/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": "dmg"
