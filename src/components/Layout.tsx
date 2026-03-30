@@ -4,7 +4,6 @@ import {
   Zap,
   Bot,
   Radio,
-  Puzzle,
   Settings,
   Package,
   HelpCircle,
@@ -30,7 +29,6 @@ const SETUP_NAV = [
 const ADVANCED_NAV = [
   { id: 'agents',   label: 'Agents',            icon: Bot },
   { id: 'channels', label: 'Channels',          icon: Radio },
-  { id: 'skills',   label: 'Skills',            icon: Puzzle },
   { id: 'cron',     label: 'Cron Tasks · 定时', icon: Clock },
   { id: 'config',   label: 'Config · 配置',     icon: Settings },
 ]

@@ -5,7 +5,6 @@ import Dashboard from './components/Dashboard'
 import Gateway from './components/Gateway'
 import Agents from './components/Agents'
 import Channels from './components/Channels'
-import Skills from './components/Skills'
 import Config from './components/Config'
 import Doctor from './components/Doctor'
 import Install from './components/Install'
@@ -54,7 +53,6 @@ export default function App() {
       case 'gateway': return <Gateway />
       case 'agents': return <Agents />
       case 'channels': return <Channels />
-      case 'skills': return <Skills />
       case 'config': return <Config />
       case 'doctor': return <Doctor />
       case 'install': return <Install />
